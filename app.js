@@ -9,7 +9,12 @@ var usersRouter = require("./routes/users");
 var customersRouter = require("./routes/customers");
 
 const mongoose = require("mongoose");
-mongoose.connect("mongodb://localhost:27017/demo");
+mongoose
+  .connect(
+    "mongodb+srv://fred:12345@testcluster.0xqc7j4.mongodb.net/test?retryWrites=true&w=majority&appName=TestCluster",
+  )
+  .then(() => console.log("Connected to DB"))
+  .catch((error) => console.log("Error: " + error));
 
 var app = express();
 
