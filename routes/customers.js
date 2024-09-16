@@ -1,0 +1,61 @@
+var express = require("express");
+var router = express.Router();
+const customerModel = require("../models/customer.model");
+const multer = require("multer");
+const { body, validationResult } = require("express-validator");
+
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./public/images");
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${file.fieldname}-${Date.now()}.jpg`);
+  },
+});
+
+const upload = multer({ storage: diskStorage });
+
+router.get("/", async (req, res) => {
+  const customers = await customerModel.find();
+  res.render("customers/index", { title: "Customer List", customers });
+});
+
+router.get("/create", (req, res) => {
+  res.render("customers/create", { title: "Create Customer" });
+});
+
+router.post(
+  "/create",
+  [
+    upload.single("image"),
+    body("fullname").notEmpty().withMessage("Please input Fullname"),
+    body("email")
+      .notEmpty()
+      .withMessage("Please input Email")
+      .isEmail()
+      .withMessage("Wrong format. Please input Email with form: abc@gmail.com")
+      .custom(async (value) => {
+        const existed = await customerModel.findOne({ email: value });
+        if (existed) {
+          throw new Error("Email is existed. Please input other email");
+        }
+      }),
+    body("password").notEmpty().withMessage("Please input Password"),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.render("customers/create", {
+        title: "Create Customer",
+        errors: errors.array(),
+      });
+    }
+
+    let cust = new customerModel(req.body);
+    cust.image = req.file.filename;
+    await cust.save();
+    res.redirect("/customers");
+  },
+);
+
+module.exports = router;
